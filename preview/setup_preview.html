@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ePaper Screen Preview — Setup / First-Boot Screen</title>
+<style>
+  body {
+    background: #777;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px;
+    font-family: sans-serif;
+    color: #eee;
+    font-size: 13px;
+  }
+
+  /* ── The screen ── */
+  .screen {
+    width: 800px;
+    height: 480px;
+    background: #e6e2d6;
+    border: 3px solid #222;
+    border-radius: 3px;
+    box-shadow: 0 4px 24px #0007;
+    position: relative;
+    overflow: hidden;
+    color: #111;
+    --font-tiny:  10px/1 "Courier New", monospace;
+    --font-bold:  bold 13px/1 "Courier New", monospace;
+  }
+
+  /* Subtle grain overlay */
+  .screen::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px, #0000000a 3px, #0000000a 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Vertical divider at x=410 */
+  .divider {
+    position: absolute;
+    top: 40px; bottom: 40px;
+    left: 410px;
+    width: 1px;
+    background: #111;
+  }
+
+  /* ── Left column: QR code ── */
+  /* Mirrors firmware layout:
+       BLOCK = 29 modules × 10 px + 2 × 30 px quiet zone = 350 px
+       QR_X  = (400 - 350) / 2 = 25
+       QR_Y  = (480 - 350) / 2 = 65                              */
+  #qr-container {
+    position: absolute;
+    left: 25px;
+    top: 65px;
+    width: 350px;
+    height: 350px;
+    background: white;   /* quiet zone */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #qr-canvas {
+    image-rendering: pixelated;
+  }
+
+  /* ── Right column: instructions ── */
+  .instructions {
+    position: absolute;
+    left: 430px;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: 74px;   /* aligns heading baseline with ~y=90 */
+  }
+  .instructions .heading {
+    font: var(--font-bold);
+    margin-bottom: 18px;
+  }
+  .instructions .line {
+    font: var(--font-tiny);
+    line-height: 12px;
+    margin-bottom: 0;
+  }
+  .instructions .gap { height: 12px; }
+  .instructions .indent { padding-left: 14px; }
+</style>
+</head>
+<body>
+
+<p>
+  ePaper Dashboard — first-boot / setup screen preview &nbsp;|&nbsp;
+  set browser zoom to 100% for true scale
+</p>
+<p style="color:#aef;margin-top:-10px">
+  The QR code encodes <code>WIFI:S:EPaper-Setup;T:nopass;;</code> — scan with a phone camera to
+  join the setup AP automatically.
+</p>
+
+<div class="screen">
+
+  <!-- ── Left column: QR code rendered by JS ── -->
+  <div id="qr-container">
+    <canvas id="qr-canvas"></canvas>
+  </div>
+
+  <!-- ── Vertical divider ── -->
+  <div class="divider"></div>
+
+  <!-- ── Right column: text instructions ── -->
+  <div class="instructions">
+    <div class="heading">Setup required</div>
+
+    <div class="line">Scan the QR code with your phone</div>
+    <div class="line">to join the setup network, or</div>
+    <div class="line">connect manually:</div>
+    <div class="gap"></div>
+    <div class="line indent">Wi-Fi: EPaper-Setup</div>
+    <div class="line indent">Password: (none)</div>
+    <div class="gap"></div>
+    <div class="line">Then open your browser to:</div>
+    <div class="line indent">http://192.168.4.1</div>
+    <div class="gap"></div>
+    <div class="line">Fill in your credentials and</div>
+    <div class="line">click  Save &amp; Restart.</div>
+    <div class="gap"></div>
+    <div class="line">The device will reboot and</div>
+    <div class="line">connect automatically.</div>
+  </div>
+
+</div>
+
+<!--
+  Minimal self-contained QR encoder.
+  Generates a version-3, ECC-L, byte-mode QR code for the string
+  "WIFI:S:EPaper-Setup;T:nopass;;" and draws it onto the canvas at
+  10 px per module, matching the firmware's MODULE_PX constant.
+
+  Based on the public-domain QR spec (ISO/IEC 18004:2015).
+  Data path: byte-mode → error correction (10,L) → remainder bits
+  → 8 format strings → 29×29 matrix → mask 0.
+-->
+<script>
+(function () {
+  // ── Reed-Solomon GF(256) helpers (primitive poly 0x11D) ─────────────
+  const EXP = new Uint8Array(256);
+  const LOG = new Uint8Array(256);
+  (function () {
+    let x = 1;
+    for (let i = 0; i < 255; i++) {
+      EXP[i] = x; LOG[x] = i;
+      x <<= 1; if (x & 256) x ^= 0x11D;
+    }
+    EXP[255] = EXP[0];
+  })();
+  const gmul = (a, b) => a && b ? EXP[(LOG[a] + LOG[b]) % 255] : 0;
+
+  // Polynomial multiply over GF(256)
+  function polyMul(a, b) {
+    const r = new Uint8Array(a.length + b.length - 1);
+    for (let i = 0; i < a.length; i++)
+      for (let j = 0; j < b.length; j++)
+        r[i + j] ^= gmul(a[i], b[j]);
+    return r;
+  }
+
+  // Build the generator polynomial for `n` error-correction codewords
+  function genPoly(n) {
+    let g = new Uint8Array([1]);
+    for (let i = 0; i < n; i++) g = polyMul(g, new Uint8Array([1, EXP[i]]));
+    return g;
+  }
+
+  // Divide `msg` by generator, return the `n` remainder codewords
+  function rsRemainder(msg, n) {
+    const g = genPoly(n);
+    const buf = new Uint8Array(msg.length + n);
+    buf.set(msg);
+    for (let i = 0; i < msg.length; i++) {
+      const c = buf[i];
+      if (c) for (let j = 0; j < g.length; j++) buf[i + j] ^= gmul(g[j], c);
+    }
+    return buf.slice(msg.length);
+  }
+
+  // ── QR version 3, ECC-L parameters ──────────────────────────────────
+  // Block 1: 1 block of 44 data codewords + 7 EC codewords
+  // (see spec Table 9 — version 3-L: 53 data codewords total, 7 EC per block × 1 block)
+  const VERSION   = 3;
+  const SIZE      = VERSION * 4 + 17;   // 29
+  const EC_PER_BLK = 7;
+  const DATA_CW   = 44;
+
+  // ── Encode data codewords ────────────────────────────────────────────
+  const TEXT = "WIFI:S:EPaper-Setup;T:nopass;;";
+
+  // Byte mode: mode indicator 0100, char count 8 bits, then UTF-8 bytes
+  // Total codewords for version 3-L = 44 data + padding
+  const bits = [];
+  const push = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >> i) & 1); };
+  push(0b0100, 4);              // mode: byte
+  push(TEXT.length, 8);         // character count
+  for (let i = 0; i < TEXT.length; i++) push(TEXT.charCodeAt(i), 8);
+  push(0b0000, 4);              // terminator
+  // Pad to byte boundary
+  while (bits.length % 8) bits.push(0);
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i + j] || 0);
+    bytes.push(b);
+  }
+  // Pad codewords
+  const PAD = [0xEC, 0x11];
+  while (bytes.length < DATA_CW) bytes.push(PAD[(bytes.length - Math.ceil(bits.length / 8)) % 2]);
+
+  // ── Error correction codewords ───────────────────────────────────────
+  const ec = rsRemainder(new Uint8Array(bytes), EC_PER_BLK);
+
+  // Interleave (single block — no actual interleaving needed)
+  const allCW = [...bytes, ...ec];
+
+  // ── Build bit stream ─────────────────────────────────────────────────
+  const stream = [];
+  for (const cw of allCW) for (let i = 7; i >= 0; i--) stream.push((cw >> i) & 1);
+  // Version 3 has 7 remainder bits (all 0)
+  for (let i = 0; i < 7; i++) stream.push(0);
+
+  // ── Initialise the 29×29 matrix ──────────────────────────────────────
+  // -1 = unset, 0 = white, 1 = black
+  const mat  = Array.from({length: SIZE}, () => new Int8Array(SIZE).fill(-1));
+  const func = Array.from({length: SIZE}, () => new Uint8Array(SIZE)); // 1 = functional
+
+  const set = (r, c, v) => { mat[r][c] = v; func[r][c] = 1; };
+
+  // Finder pattern (7×7 + separator)
+  const finder = (tr, tc) => {
+    for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+      const row = tr + r, col = tc + c;
+      if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) continue;
+      const inside = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+      const border = r === 0 || r === 6 || c === 0 || c === 6;
+      const inner  = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+      set(row, col, inside && (border || inner) ? 1 : 0);
+    }
+  };
+  finder(0, 0); finder(0, SIZE - 7); finder(SIZE - 7, 0);
+
+  // Alignment pattern (version 3 has one at row=22, col=22)
+  const align = (ar, ac) => {
+    for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++) {
+      const border = Math.abs(r) === 2 || Math.abs(c) === 2;
+      const center = r === 0 && c === 0;
+      set(ar + r, ac + c, border || center ? 1 : 0);
+    }
+  };
+  align(22, 22);
+
+  // Timing strips
+  for (let i = 8; i < SIZE - 8; i++) {
+    set(6, i, i % 2 === 0 ? 1 : 0);
+    set(i, 6, i % 2 === 0 ? 1 : 0);
+  }
+
+  // Dark module (always black)
+  set(SIZE - 8, 8, 1);
+
+  // Format information area reservation (set to functional so data skips them)
+  for (let i = 0; i <= 8; i++) { func[8][i] = 1; func[i][8] = 1; }
+  for (let i = SIZE - 7; i < SIZE; i++) { func[8][i] = 1; func[i][8] = 1; }
+
+  // ── Place data bits (zig-zag upward, mask 0: (row+col)%2==0 → flip) ─
+  const copy = mat.map(r => Int8Array.from(r));  // work on a copy for mask evaluation
+
+  let bitIdx = 0;
+  let up = true;
+  for (let right = SIZE - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;   // skip timing column
+    for (let count = 0; count < SIZE; count++) {
+      const row = up ? SIZE - 1 - count : count;
+      for (let colOff = 0; colOff <= 1; colOff++) {
+        const col = right - colOff;
+        if (func[row][col]) continue;
+        const bit = bitIdx < stream.length ? stream[bitIdx++] : 0;
+        // Mask 0: invert if (row + col) % 2 === 0
+        copy[row][col] = bit ^ ((row + col) % 2 === 0 ? 1 : 0);
+      }
+    }
+    up = !up;
+  }
+
+  // ── Format string (ECC-L, mask 0) ────────────────────────────────────
+  // ECC level L = 01, mask 0 = 000 → 5-bit data = 01000 = 8
+  // Generator for format: x^10 + x^8 + x^5 + x^4 + x^2 + x + 1 (0x537)
+  // Remainder of (8 << 10) / 0x537:
+  const FORMAT_BITS = (() => {
+    let r = 8 << 10;
+    for (let i = 14; i >= 10; i--) if ((r >> i) & 1) r ^= 0x537 << (i - 10);
+    const raw = (8 << 10) | r;
+    return raw ^ 0x5412;   // XOR mask for format string
+  })();
+
+  const writeFormat = (bits15) => {
+    const fmtPos = [
+      [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],
+      [7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]
+    ];
+    const fmtPos2 = [
+      [SIZE-1,8],[SIZE-2,8],[SIZE-3,8],[SIZE-4,8],[SIZE-5,8],[SIZE-6,8],[SIZE-7,8],
+      [8,SIZE-8],[8,SIZE-7],[8,SIZE-6],[8,SIZE-5],[8,SIZE-4],[8,SIZE-3],[8,SIZE-2],[8,SIZE-1]
+    ];
+    for (let i = 0; i < 15; i++) {
+      const bit = (bits15 >> (14 - i)) & 1;
+      copy[fmtPos[i][0]][fmtPos[i][1]] = bit;
+      copy[fmtPos2[i][0]][fmtPos2[i][1]] = bit;
+    }
+  };
+  writeFormat(FORMAT_BITS);
+
+  // ── Render to canvas ─────────────────────────────────────────────────
+  const MODULE_PX = 10;   // matches firmware's MODULE_PX constant
+  const QUIET_PX  = 30;   // matches firmware's QUIET_PX constant
+  const canvas = document.getElementById("qr-canvas");
+  canvas.width  = SIZE * MODULE_PX + 2 * QUIET_PX;
+  canvas.height = SIZE * MODULE_PX + 2 * QUIET_PX;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#111111";
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (copy[r][c] === 1) {
+        ctx.fillRect(
+          QUIET_PX + c * MODULE_PX,
+          QUIET_PX + r * MODULE_PX,
+          MODULE_PX, MODULE_PX
+        );
+      }
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

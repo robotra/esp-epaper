@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ePaper Screen Preview — 800×480</title>
+<style>
+  body {
+    background: #777;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px;
+    font-family: sans-serif;
+    color: #eee;
+    font-size: 13px;
+  }
+
+  /* ── The screen ── */
+  .screen {
+    width: 800px;
+    height: 480px;
+    background: #e6e2d6;
+    border: 3px solid #222;
+    border-radius: 3px;
+    box-shadow: 0 4px 24px #0007;
+    position: relative;
+    overflow: hidden;
+    color: #111;
+
+    /* "built-in" tiny font matches firmware's nullptr font (6×8 bitmap) */
+    --font-tiny: 10px/1 "Courier New", monospace;
+    --font-small: 12px/1 "Courier New", monospace;
+    --font-bold:  bold 12px/1 "Courier New", monospace;
+    --font-title: bold 13px/1 "Courier New", monospace;
+  }
+
+  /* Subtle grain */
+  .screen::after {
+    content:"";
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(
+      0deg, transparent, transparent 3px, #0000000a 3px, #0000000a 4px
+    );
+    pointer-events:none;
+  }
+
+  hr.rule {
+    border: none;
+    border-top: 1px solid #111;
+    margin: 0;
+    position: absolute;
+    left: 8px; right: 8px;
+  }
+  hr.rule.thick {
+    border-top-width: 2px;
+  }
+
+  /* ── Row 1: current conditions  y=0..59 ── */
+  .current {
+    position: absolute;
+    top: 0; left: 8px; right: 8px;
+    height: 60px;
+    padding-top: 3px;
+  }
+  .current .line1 { font: var(--font-title); margin-bottom: 5px; }
+  .current .line2 { font: var(--font-tiny);  margin-bottom: 3px; }
+  .current .line3 { font: var(--font-tiny); }
+
+  /* ── Row 2: hourly  y=60..123 ── */
+  .hourly-row {
+    position: absolute;
+    top: 60px; left: 0; right: 0;
+    height: 64px;
+    display: flex;
+  }
+  .h-slot {
+    flex: 1;
+    border-left: 1px solid #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0;
+    gap: 3px;
+  }
+  .h-slot:first-child { border-left: none; }
+  .h-slot .h-time { font: var(--font-tiny);  color: #333; }
+  .h-slot .h-temp { font: var(--font-bold); }
+  .h-slot .h-desc { font: var(--font-tiny);  color: #444; font-size: 9px; text-align:center; }
+
+  /* ── Row 3: 3-day  y=124..187 ── */
+  .daily-row {
+    position: absolute;
+    top: 124px; left: 0; right: 0;
+    height: 64px;
+    display: flex;
+  }
+  .d-slot {
+    flex: 1;
+    border-left: 1px solid #111;
+    padding: 6px 10px;
+  }
+  .d-slot:first-child { border-left: none; }
+  .d-slot .d-day  { font: var(--font-bold); margin-bottom: 4px; }
+  .d-slot .d-hl   { font: var(--font-tiny); margin-bottom: 3px; }
+  .d-slot .d-desc { font: var(--font-tiny); color: #444; }
+
+  /* ── Row 4: messages  y=192..479 ── */
+  .messages {
+    position: absolute;
+    top: 192px; left: 8px; right: 8px; bottom: 2px;
+    overflow: hidden;
+  }
+  .msg-heading {
+    font: var(--font-title);
+    padding: 3px 0 3px;
+    border-bottom: 1px solid #111;
+    margin-bottom: 3px;
+  }
+  .msg { margin-bottom: 2px; }
+  .msg .meta { font: var(--font-tiny); color: #333; }
+  .msg .body { font: var(--font-tiny); padding-left: 10px; line-height: 1.4;
+               word-break: break-word; }
+  .msg-sep {
+    border: none;
+    border-top: 1px dashed #777;
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+
+<p>ePaper Dashboard — 800 × 480 preview &nbsp;|&nbsp; set browser zoom to 100% for true scale</p>
+
+<div class="screen">
+
+  <!-- ── Row 1: Current conditions ── -->
+  <div class="current">
+    <div class="line1">New York &nbsp;&nbsp; 65.2°F</div>
+    <div class="line2">scattered clouds &nbsp; feels 62.5°F</div>
+    <div class="line3">Humidity 62% &nbsp;&nbsp; Wind 7.2 mph</div>
+  </div>
+
+  <hr class="rule" style="top:59px">
+
+  <!-- ── Row 2: Hourly forecast (8 × 3h slots) ── -->
+  <div class="hourly-row">
+    <div class="h-slot"><span class="h-time">12:00</span><span class="h-temp">65°</span><span class="h-desc">Clouds</span></div>
+    <div class="h-slot"><span class="h-time">15:00</span><span class="h-temp">63°</span><span class="h-desc">Rain</span></div>
+    <div class="h-slot"><span class="h-time">18:00</span><span class="h-temp">59°</span><span class="h-desc">Rain</span></div>
+    <div class="h-slot"><span class="h-time">21:00</span><span class="h-temp">57°</span><span class="h-desc">Clear</span></div>
+    <div class="h-slot"><span class="h-time">00:00</span><span class="h-temp">55°</span><span class="h-desc">Clear</span></div>
+    <div class="h-slot"><span class="h-time">03:00</span><span class="h-temp">54°</span><span class="h-desc">Mist</span></div>
+    <div class="h-slot"><span class="h-time">06:00</span><span class="h-temp">55°</span><span class="h-desc">Mist</span></div>
+    <div class="h-slot"><span class="h-time">09:00</span><span class="h-temp">61°</span><span class="h-desc">Sun</span></div>
+  </div>
+
+  <hr class="rule" style="top:123px">
+
+  <!-- ── Row 3: 3-day forecast ── -->
+  <div class="daily-row">
+    <div class="d-slot">
+      <div class="d-day">Wednesday</div>
+      <div class="d-hl">H: 67°F &nbsp; L: 54°F</div>
+      <div class="d-desc">Partly cloudy</div>
+    </div>
+    <div class="d-slot">
+      <div class="d-day">Thursday</div>
+      <div class="d-hl">H: 63°F &nbsp; L: 52°F</div>
+      <div class="d-desc">Light rain</div>
+    </div>
+    <div class="d-slot">
+      <div class="d-day">Friday</div>
+      <div class="d-hl">H: 72°F &nbsp; L: 57°F</div>
+      <div class="d-desc">Sunny</div>
+    </div>
+  </div>
+
+  <hr class="rule thick" style="top:188px">
+
+  <!-- ── Row 4: Messages ── -->
+  <!-- Sender names resolved via address book: Alice=+15550123456,
+       Bob=+15552468101, Dr. Chen=+15553789900                    -->
+  <div class="messages">
+    <div class="msg-heading">Recent Messages</div>
+
+    <div class="msg">
+      <div class="meta">Alice &nbsp; 18 Mar 09:14:00</div>
+      <div class="body">Hey! Just a reminder that the meeting is at 3 pm today. Don't forget to bring the report.</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Alice &nbsp; 18 Mar 08:47:00</div>
+      <div class="body">Also can you grab coffee on the way? The usual order for everyone.</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Bob &nbsp; 17 Mar 22:03:00</div>
+      <div class="body">Verification code: 482917. Valid for 10 minutes. Do not share this code.</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Alice &nbsp; 17 Mar 18:30:00</div>
+      <div class="body">Dinner reservation confirmed for 7:30 pm at The Oak Room. See you there!</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Bob &nbsp; 17 Mar 14:15:00</div>
+      <div class="body">Your order has shipped. Estimated delivery: Thursday. Track at usps.com/track.</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Alice &nbsp; 17 Mar 11:02:00</div>
+      <div class="body">Can you pick up the kids at 4? I'm running late.</div>
+    </div>
+    <hr class="msg-sep">
+
+    <div class="msg">
+      <div class="meta">Dr. Chen &nbsp; 17 Mar 08:30:00</div>
+      <div class="body">Your appointment is confirmed for Friday at 10 am. Reply CANCEL to cancel.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

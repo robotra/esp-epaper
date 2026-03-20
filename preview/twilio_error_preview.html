@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ePaper Screen Preview — Twilio Error State</title>
+<style>
+  body {
+    background: #777;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px;
+    font-family: sans-serif;
+    color: #eee;
+    font-size: 13px;
+  }
+
+  /* ── The screen ── */
+  .screen {
+    width: 800px;
+    height: 480px;
+    background: #e6e2d6;
+    border: 3px solid #222;
+    border-radius: 3px;
+    box-shadow: 0 4px 24px #0007;
+    position: relative;
+    overflow: hidden;
+    color: #111;
+
+    /* "built-in" tiny font matches firmware's nullptr font (6×8 bitmap) */
+    --font-tiny: 10px/1 "Courier New", monospace;
+    --font-small: 12px/1 "Courier New", monospace;
+    --font-bold:  bold 12px/1 "Courier New", monospace;
+    --font-title: bold 13px/1 "Courier New", monospace;
+  }
+
+  /* Subtle grain */
+  .screen::after {
+    content:"";
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(
+      0deg, transparent, transparent 3px, #0000000a 3px, #0000000a 4px
+    );
+    pointer-events:none;
+  }
+
+  hr.rule {
+    border: none;
+    border-top: 1px solid #111;
+    margin: 0;
+    position: absolute;
+    left: 8px; right: 8px;
+  }
+  hr.rule.thick {
+    border-top-width: 2px;
+  }
+
+  /* ── Row 1: current conditions  y=0..59 ── */
+  .current {
+    position: absolute;
+    top: 0; left: 8px; right: 8px;
+    height: 60px;
+    padding-top: 3px;
+  }
+  .current .line1 { font: var(--font-title); margin-bottom: 5px; }
+  .current .line2 { font: var(--font-tiny);  margin-bottom: 3px; }
+  .current .line3 { font: var(--font-tiny); }
+
+  /* ── Row 2: hourly  y=60..123 ── */
+  .hourly-row {
+    position: absolute;
+    top: 60px; left: 0; right: 0;
+    height: 64px;
+    display: flex;
+  }
+  .h-slot {
+    flex: 1;
+    border-left: 1px solid #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0;
+    gap: 3px;
+  }
+  .h-slot:first-child { border-left: none; }
+  .h-slot .h-time { font: var(--font-tiny);  color: #333; }
+  .h-slot .h-temp { font: var(--font-bold); }
+  .h-slot .h-desc { font: var(--font-tiny);  color: #444; font-size: 9px; text-align:center; }
+
+  /* ── Row 3: 3-day  y=124..187 ── */
+  .daily-row {
+    position: absolute;
+    top: 124px; left: 0; right: 0;
+    height: 64px;
+    display: flex;
+  }
+  .d-slot {
+    flex: 1;
+    border-left: 1px solid #111;
+    padding: 6px 10px;
+  }
+  .d-slot:first-child { border-left: none; }
+  .d-slot .d-day  { font: var(--font-bold); margin-bottom: 4px; }
+  .d-slot .d-hl   { font: var(--font-tiny); margin-bottom: 3px; }
+  .d-slot .d-desc { font: var(--font-tiny); color: #444; }
+
+  /* ── Row 4: messages (error state)  y=192..479 ── */
+  .messages {
+    position: absolute;
+    top: 192px; left: 8px; right: 8px; bottom: 2px;
+    overflow: hidden;
+  }
+  .msg-heading {
+    font: var(--font-title);
+    padding: 3px 0 3px;
+    border-bottom: 1px solid #111;
+    margin-bottom: 3px;
+  }
+  /* Error lines match the two tinyAt() calls in ui_renderer.cpp:
+       tinyAt(display, MX, Y_MESSAGES + 28, "Messages error:");
+       tinyAt(display, MX, Y_MESSAGES + 40, twilioError);
+     Y_MESSAGES = 192, so the first line is at abs y=220, second at y=232.
+     Within the .messages div (top=192) those are relative y=28 and y=40. */
+  .error-label {
+    font: var(--font-tiny);
+    margin-top: 6px;   /* ~28px from top of band (after heading) */
+  }
+  .error-value {
+    font: var(--font-tiny);
+    margin-top: 4px;   /* ~12px below label */
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<p>
+  ePaper Dashboard — Twilio error state preview &nbsp;|&nbsp;
+  set browser zoom to 100% for true scale
+</p>
+<p style="color:#ffcc66;margin-top:-10px">
+  Weather &amp; forecast data fetched successfully.
+  Twilio returned <strong>HTTP 403</strong> (wrong Auth Token or number not owned by this account).
+</p>
+
+<div class="screen">
+
+  <!-- ── Row 1: Current conditions (normal — fetch succeeded) ── -->
+  <div class="current">
+    <div class="line1">New York &nbsp;&nbsp; 65.2°F</div>
+    <div class="line2">scattered clouds &nbsp; feels 62.5°F</div>
+    <div class="line3">Humidity 62% &nbsp;&nbsp; Wind 7.2 m/s</div>
+  </div>
+
+  <hr class="rule" style="top:59px">
+
+  <!-- ── Row 2: Hourly forecast (normal) ── -->
+  <div class="hourly-row">
+    <div class="h-slot"><span class="h-time">12:00</span><span class="h-temp">65°</span><span class="h-desc">Clouds</span></div>
+    <div class="h-slot"><span class="h-time">15:00</span><span class="h-temp">63°</span><span class="h-desc">Rain</span></div>
+    <div class="h-slot"><span class="h-time">18:00</span><span class="h-temp">59°</span><span class="h-desc">Rain</span></div>
+    <div class="h-slot"><span class="h-time">21:00</span><span class="h-temp">57°</span><span class="h-desc">Clear</span></div>
+    <div class="h-slot"><span class="h-time">00:00</span><span class="h-temp">55°</span><span class="h-desc">Clear</span></div>
+    <div class="h-slot"><span class="h-time">03:00</span><span class="h-temp">54°</span><span class="h-desc">Mist</span></div>
+    <div class="h-slot"><span class="h-time">06:00</span><span class="h-temp">55°</span><span class="h-desc">Mist</span></div>
+    <div class="h-slot"><span class="h-time">09:00</span><span class="h-temp">61°</span><span class="h-desc">Sun</span></div>
+  </div>
+
+  <hr class="rule" style="top:123px">
+
+  <!-- ── Row 3: 3-day forecast (normal) ── -->
+  <div class="daily-row">
+    <div class="d-slot">
+      <div class="d-day">Wed</div>
+      <div class="d-hl">H:67°  L:54°</div>
+      <div class="d-desc">Partly cloudy</div>
+    </div>
+    <div class="d-slot">
+      <div class="d-day">Thu</div>
+      <div class="d-hl">H:63°  L:52°</div>
+      <div class="d-desc">Light rain</div>
+    </div>
+    <div class="d-slot">
+      <div class="d-day">Fri</div>
+      <div class="d-hl">H:72°  L:57°</div>
+      <div class="d-desc">Sunny</div>
+    </div>
+  </div>
+
+  <!-- 2-px thick divider at y=188 -->
+  <hr class="rule thick" style="top:188px">
+
+  <!-- ── Row 4: Messages — ERROR STATE ──
+       Mirrors the twilioError branch in uiDraw():
+         boldAt(display, MX, Y_MESSAGES + 14, "Recent Messages");
+         hRule(display, Y_MESSAGES + 17);
+         tinyAt(display, MX, Y_MESSAGES + 28, "Messages error:");
+         tinyAt(display, MX, Y_MESSAGES + 40, twilioError);
+  ── -->
+  <div class="messages">
+    <div class="msg-heading">Recent Messages</div>
+    <div class="error-label">Messages error:</div>
+    <div class="error-value">HTTP 403</div>
+  </div>
+
+</div>
+
+</body>
+</html>

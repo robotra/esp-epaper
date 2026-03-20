@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.waveshare.net)",
+      "WebFetch(domain:www.ite.com.tw)",
+      "Bash(find c:/Users/johnf -path *GxEPD2* -name *.h)",
+      "Bash(find c:/Users/johnf/OneDrive/Documents/esp32_epaper/build -name *IT8951* -o -name *it8951*)",
+      "Bash(find c:/Users/johnf/OneDrive/Documents/esp32_epaper/build -name GxEPD2*)"
+    ]
+  }
+}

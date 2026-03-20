@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ePaper Config Portal — Preview</title>
+<style>
+  /* ── Outer page: simulates a phone browser ── */
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    background: #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    gap: 16px;
+    color: #222;
+    font-size: 14px;
+  }
+
+  .label {
+    color: #444;
+    font-size: 12px;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    background: #1a1a1a;
+    border-radius: 44px;
+    padding: 14px;
+    box-shadow: 0 12px 48px #0006;
+  }
+
+  .phone-screen {
+    background: #f0f0f0;
+    border-radius: 32px;
+    overflow: hidden;
+    height: 700px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Fake status bar */
+  .status-bar {
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .status-bar .time { font-size: 14px; font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+  .status-bar .icons svg { width: 14px; height: 14px; }
+
+  /* Fake address bar */
+  .address-bar {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .address-bar .url-pill {
+    flex: 1;
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #555;
+    text-align: center;
+  }
+  .address-bar .reload {
+    font-size: 16px;
+    color: #888;
+    cursor: default;
+  }
+
+  /* Scrollable page content inside phone */
+  .page-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #f0f0f0;
+    padding: 20px 16px;
+    scrollbar-width: none;
+  }
+  .page-content::-webkit-scrollbar { display: none; }
+
+  /* ── Portal card (mirrors config_portal.cpp CSS) ── */
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 12px #0002;
+  }
+  h1 { margin: 0 0 6px; font-size: 1.25rem; }
+  p.sub { color: #666; margin: 0 0 20px; font-size: .85rem; }
+  h2 {
+    font-size: .95rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+    margin: 18px 0 10px;
+  }
+  label { display: block; font-size: .8rem; color: #444; margin-bottom: 3px; }
+  input, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: .9rem;
+    margin-bottom: 12px;
+    font-family: sans-serif;
+    background: #fff;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #0078d4; }
+  textarea { resize: vertical; }
+  .hint { font-size: .74rem; color: #888; margin-top: -8px; margin-bottom: 12px; }
+  button {
+    width: 100%;
+    padding: 10px;
+    background: #0078d4;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: .95rem;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  button:hover { background: #005fa3; }
+
+  /* ── Desktop comparison view ── */
+  .desktop-wrap {
+    width: 560px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 24px #0003;
+    overflow: hidden;
+  }
+  .desktop-chrome {
+    background: #f1f1f1;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .desktop-chrome .dots { display: flex; gap: 5px; }
+  .desktop-chrome .dots span {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #ccc;
+  }
+  .desktop-chrome .dots span:nth-child(1) { background: #ff5f57; }
+  .desktop-chrome .dots span:nth-child(2) { background: #febc2e; }
+  .desktop-chrome .dots span:nth-child(3) { background: #28c840; }
+  .desktop-chrome .desktop-url {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #555;
+    text-align: center;
+  }
+  .desktop-page {
+    padding: 28px;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+  }
+  .desktop-page .card {
+    width: 100%;
+    max-width: 440px;
+  }
+</style>
+</head>
+<body>
+
+<p class="label">Config portal — mobile view (192.168.4.1)</p>
+
+<!-- Phone frame -->
+<div class="phone">
+  <div class="phone-screen">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <!-- Signal -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="1"  y="16" width="3" height="7" rx="1"/>
+          <rect x="6"  y="11" width="3" height="12" rx="1"/>
+          <rect x="11" y="6"  width="3" height="17" rx="1"/>
+          <rect x="16" y="1"  width="3" height="22" rx="1" opacity=".3"/>
+        </svg>
+        <!-- WiFi -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12.5A9.5 9.5 0 0 1 19 12.5" opacity=".3"/>
+          <path d="M8 15.5A5.5 5.5 0 0 1 16 15.5"/>
+          <path d="M11 18.5h2"/>
+        </svg>
+        <!-- Battery -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="3.5" y="8.5" width="13" height="7" rx="1"/>
+          <path d="M21 10v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Address bar -->
+    <div class="address-bar">
+      <div class="url-pill">192.168.4.1</div>
+      <span class="reload">&#8635;</span>
+    </div>
+
+    <!-- Portal page -->
+    <div class="page-content">
+      <div class="card">
+        <h1>ePaper Dashboard Setup</h1>
+        <p class="sub">Fill in your credentials. The device will restart and connect automatically.</p>
+
+        <form>
+          <h2>Wi-Fi</h2>
+          <label>Network name (SSID)</label>
+          <input type="text" value="MyHomeWiFi" placeholder="MyHomeWiFi">
+          <label>Password</label>
+          <input type="password" placeholder="(leave blank if open)">
+
+          <h2>Twilio</h2>
+          <label>Account SID</label>
+          <input type="text" value="AC1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d" placeholder="ACxxxxxxxxxxxxxxxx">
+          <label>Auth Token</label>
+          <input type="password" placeholder="your auth token">
+          <label>Your Twilio number (E.164)</label>
+          <input type="text" value="+15550001234" placeholder="+15550001234">
+          <label>SMS sender whitelist (optional)</label>
+          <textarea rows="3" placeholder="+15550001234&#10;+15550005678">+15550123456
++15552468101</textarea>
+          <p class="hint">One E.164 number per line (e.g. +15550001234). Leave blank to show messages from anyone.</p>
+
+          <h2>Address Book (optional)</h2>
+          <label>Contacts</label>
+          <textarea rows="4">Alice: +15550123456
+Bob: +15552468101
+Dr. Chen: +15553789900</textarea>
+          <p class="hint">One contact per line: <em>Name: +E164number</em> (e.g. <code>Alice: +15550001234</code>). Names replace phone numbers on the display.</p>
+
+          <h2>OpenWeatherMap</h2>
+          <label>API Key</label>
+          <input type="password" placeholder="your OWM API key">
+          <label>City or coordinates</label>
+          <input type="text" value="New York" placeholder='New York  or  lat=40.7&amp;lon=-74.0'>
+          <p class="hint">Use a city name or <em>lat=XX.X&amp;lon=YY.Y</em> for GPS coordinates.</p>
+
+          <button type="button">Save &amp; Restart</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p class="label" style="margin-top:24px">Config portal — desktop view</p>
+
+<!-- Desktop frame -->
+<div class="desktop-wrap">
+  <div class="desktop-chrome">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <div class="desktop-url">&#128274;&nbsp; 192.168.4.1</div>
+  </div>
+  <div class="desktop-page">
+    <div class="card">
+      <h1>ePaper Dashboard Setup</h1>
+      <p class="sub">Fill in your credentials. The device will restart and connect automatically.</p>
+
+      <form>
+        <h2>Wi-Fi</h2>
+        <label>Network name (SSID)</label>
+        <input type="text" value="MyHomeWiFi" placeholder="MyHomeWiFi">
+        <label>Password</label>
+        <input type="password" placeholder="(leave blank if open)">
+
+        <h2>Twilio</h2>
+        <label>Account SID</label>
+        <input type="text" value="AC1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d" placeholder="ACxxxxxxxxxxxxxxxx">
+        <label>Auth Token</label>
+        <input type="password" placeholder="your auth token">
+        <label>Your Twilio number (E.164)</label>
+        <input type="text" value="+15550001234" placeholder="+15550001234">
+        <label>SMS sender whitelist (optional)</label>
+        <textarea rows="3" placeholder="+15550001234&#10;+15550005678">+15550119876
++15552468101</textarea>
+        <p class="hint">One E.164 number per line (e.g. +15550001234). Leave blank to show messages from anyone.</p>
+
+        <h2>OpenWeatherMap</h2>
+        <label>API Key</label>
+        <input type="password" placeholder="your OWM API key">
+        <label>City or coordinates</label>
+        <input type="text" value="New York" placeholder='New York  or  lat=40.7&amp;lon=-74.0'>
+        <p class="hint">Use a city name or <em>lat=XX.X&amp;lon=YY.Y</em> for GPS coordinates.</p>
+
+        <button type="button">Save &amp; Restart</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -55,6 +55,7 @@ struct Credentials {
     // e.g. "Alice|+15550001234,Bob Smith|+15550005678".
     // Empty = show raw E.164 numbers.  Optional field — never required.
     String contactBook;
+    String timezone;    // POSIX TZ string, e.g. "EST5EDT,M3.2.0,M11.1.0"
 };
 
 

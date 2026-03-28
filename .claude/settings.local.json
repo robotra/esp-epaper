@@ -6,7 +6,14 @@
       "WebFetch(domain:www.ite.com.tw)",
       "Bash(find c:/Users/johnf -path *GxEPD2* -name *.h)",
       "Bash(find c:/Users/johnf/OneDrive/Documents/esp32_epaper/build -name *IT8951* -o -name *it8951*)",
-      "Bash(find c:/Users/johnf/OneDrive/Documents/esp32_epaper/build -name GxEPD2*)"
+      "Bash(find c:/Users/johnf/OneDrive/Documents/esp32_epaper/build -name GxEPD2*)",
+      "Bash(cp \"C:/Users/johnf/OneDrive/Documents/PlatformIO/Projects/260324-150354-esp32-s3-devkitm-1/src/DEV_Config.h\" \"c:/Users/johnf/OneDrive/Documents/esp32 projects/esp32_epaper/src/\")",
+      "Bash(cp \"C:/Users/johnf/OneDrive/Documents/PlatformIO/Projects/260324-150354-esp32-s3-devkitm-1/src/DEV_Config.cpp\" \"c:/Users/johnf/OneDrive/Documents/esp32 projects/esp32_epaper/src/\")",
+      "Bash(cp \"C:/Users/johnf/OneDrive/Documents/PlatformIO/Projects/260324-150354-esp32-s3-devkitm-1/src/EPD_3in97.h\" \"c:/Users/johnf/OneDrive/Documents/esp32 projects/esp32_epaper/src/\")",
+      "Bash(cp \"C:/Users/johnf/OneDrive/Documents/PlatformIO/Projects/260324-150354-esp32-s3-devkitm-1/src/EPD_3in97.cpp\" \"c:/Users/johnf/OneDrive/Documents/esp32 projects/esp32_epaper/src/\")",
+      "Bash(cp \"C:/Users/johnf/OneDrive/Documents/PlatformIO/Projects/260324-150354-esp32-s3-devkitm-1/src/GUI_Paint.h\" \"c:/Users/johnf/OneDrive/Documents/esp32 projects/esp32_epaper/src/\")",
+      "Bash(pio run:*)",
+      "Bash(~/.platformio/penv/Scripts/pio run:*)"
     ]
   }
 }

@@ -62,6 +62,8 @@ static const char HTML_PAGE[] PROGMEM = R"rawhtml(
         border-radius:6px;font-size:.95rem;margin-bottom:14px}
   input:focus{outline:none;border-color:#0078d4}
   .hint{font-size:.78rem;color:#888;margin-top:-10px;margin-bottom:14px}
+  select{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;
+         font-size:.95rem;margin-bottom:14px;background:#fff}
   button{width:100%;padding:11px;background:#0078d4;color:#fff;
          border:none;border-radius:7px;font-size:1rem;cursor:pointer;
          margin-top:8px}
@@ -101,6 +103,22 @@ static const char HTML_PAGE[] PROGMEM = R"rawhtml(
     <label>Contacts</label>
     <textarea name="contacts" rows="5" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:.95rem;margin-bottom:4px;resize:vertical">%CONTACTS%</textarea>
     <p class="hint">One contact per line: <em>Name: +E164number</em> (e.g. <code>Alice: +15550001234</code>). Names replace phone numbers on the display.</p>
+
+    <h2>Time Zone</h2>
+    <label>Your time zone</label>
+    <select name="timezone">
+      <option value="EST5EDT,M3.2.0,M11.1.0"      %SEL_USEAST%  >US Eastern</option>
+      <option value="CST6CDT,M3.2.0,M11.1.0"      %SEL_USCENT%  >US Central</option>
+      <option value="MST7MDT,M3.2.0,M11.1.0"      %SEL_USMTN%   >US Mountain</option>
+      <option value="PST8PDT,M3.2.0,M11.1.0"      %SEL_USPAC%   >US Pacific</option>
+      <option value="AKST9AKDT,M3.2.0,M11.1.0"    %SEL_USAK%    >US Alaska</option>
+      <option value="HST10"                        %SEL_USHI%    >US Hawaii</option>
+      <option value="GMT0BST,M3.5.0/1,M10.5.0"    %SEL_UK%      >UK / Ireland</option>
+      <option value="CET-1CEST,M3.5.0,M10.5.0/3"  %SEL_CET%     >Central Europe (CET)</option>
+      <option value="EET-2EEST,M3.5.0/3,M10.5.0/4"%SEL_EET%     >Eastern Europe (EET)</option>
+      <option value="AEST-10AEDT,M10.1.0,M4.1.0/3"%SEL_AEST%    >Australia Eastern</option>
+      <option value="JST-9"                        %SEL_JST%     >Japan (JST)</option>
+    </select>
 
     <h2>OpenWeatherMap</h2>
     <label>API Key</label>
@@ -178,6 +196,31 @@ static String buildPage()
         }
     }
     page.replace("%CONTACTS%", contactsDisplay);
+
+    // Timezone: mark the matching <option> as selected
+    static const char *TZ_VALS[] = {
+        "EST5EDT,M3.2.0,M11.1.0",
+        "CST6CDT,M3.2.0,M11.1.0",
+        "MST7MDT,M3.2.0,M11.1.0",
+        "PST8PDT,M3.2.0,M11.1.0",
+        "AKST9AKDT,M3.2.0,M11.1.0",
+        "HST10",
+        "GMT0BST,M3.5.0/1,M10.5.0",
+        "CET-1CEST,M3.5.0,M10.5.0/3",
+        "EET-2EEST,M3.5.0/3,M10.5.0/4",
+        "AEST-10AEDT,M10.1.0,M4.1.0/3",
+        "JST-9"
+    };
+    static const char *TZ_KEYS[] = {
+        "%SEL_USEAST%","%SEL_USCENT%","%SEL_USMTN%","%SEL_USPAC%",
+        "%SEL_USAK%",  "%SEL_USHI%",  "%SEL_UK%",   "%SEL_CET%",
+        "%SEL_EET%",   "%SEL_AEST%",  "%SEL_JST%"
+    };
+    for (int i = 0; i < 11; i++) {
+        page.replace(TZ_KEYS[i],
+                     cur.timezone == TZ_VALS[i] ? "selected" : "");
+    }
+
     return page;
 }
 
@@ -204,6 +247,7 @@ static void handleSave()
     c.twilioToNumber   = server.arg("twilio_to");
     c.owmApiKey        = server.arg("owm_key");
     c.owmCity          = server.arg("owm_city");
+    c.timezone         = server.arg("timezone");
 
     // ---- Normalise whitelist ----------------------------------------
     // The textarea sends newline-separated numbers (and potentially

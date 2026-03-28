@@ -35,6 +35,7 @@ bool credentialsLoad(Credentials &out)
     out.owmApiKey          = prefs.getString("owm_key",        "");
     out.owmCity            = prefs.getString("owm_city",       "");
     out.contactBook        = prefs.getString("contacts",       "");
+    out.timezone           = prefs.getString("timezone",       "EST5EDT,M3.2.0,M11.1.0");
 
     prefs.end();
 
@@ -72,6 +73,7 @@ void credentialsSave(const Credentials &c)
     prefs.putString("owm_key",       c.owmApiKey);
     prefs.putString("owm_city",      c.owmCity);
     prefs.putString("contacts",      c.contactBook);
+    prefs.putString("timezone",      c.timezone);
 
     prefs.end();   // flush + close — NVS is committed here
 }
